@@ -31,6 +31,12 @@ jobs:
           repository: v2fly/domain-list-community
           path: community
 
+      - name: Checkout runetfreedom/russia-domains-list
+        uses: actions/checkout@v4
+        with:
+          repository: runetfreedom/russia-domains-list
+          path: additional
+
       - name: Filter data directory based on sections
         run: |
           INTEREST_FILE=sections
@@ -73,6 +79,9 @@ jobs:
 
           cp {antifilter-download-community,refilter}.txt ./community/data/
           for f in ./community/data/*.txt; do mv "$f" "${f//.txt/}"; done
+
+          rm -rf ./additional/README.md
+          mv ./additional/* ./community/data/
 
       - name: Build ad block
         run: |

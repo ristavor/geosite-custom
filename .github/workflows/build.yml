@@ -41,23 +41,57 @@ jobs:
         run: |
           INTEREST_FILE=sections
           DATA_DIR=./community/data
-          TEMP_KEEP_LIST=keep_files.txt
 
-          [ ! -f $INTEREST_FILE ] && { echo "File $INTEREST_FILE not found."; exit 1; }
+          [ ! -f "$INTEREST_FILE" ] && { echo "File $INTEREST_FILE not found."; exit 1; }
 
-          grep -v '^#' $INTEREST_FILE | grep -v '^\s*$' > $TEMP_KEEP_LIST
-          while read -r section; do
-            file=$DATA_DIR/$section
-            [ -f "$file" ] && grep '^include:' "$file" | awk -F':' '{print $2}' >> $TEMP_KEEP_LIST
-          done < $TEMP_KEEP_LIST
+          readarray -t PENDING < <(
+            grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$'
+          )
 
-          sort -u $TEMP_KEEP_LIST -o $TEMP_KEEP_LIST
-          find $DATA_DIR -type f | while read -r file; do
-            base=$(basename "$file")
-            ! grep -qx "$base" $TEMP_KEEP_LIST && rm -f "$file"
+          KEPT=("${PENDING[@]}")
+
+          contains_in_kept() {
+            local element="$1"
+            local item
+            for item in "${KEPT[@]}"; do
+              [[ "$item" == "$element" ]] && return 0
+            done
+            return 1
+          }
+
+          idx=0
+          while [ $idx -lt ${#PENDING[@]} ]; do
+            current="${PENDING[$idx]}"
+            file="$DATA_DIR/$current"
+
+            if [ -f "$file" ]; then
+              while read -r included; do
+                if ! contains_in_kept "$included"; then
+                  KEPT+=("$included")
+                  PENDING+=("$included")
+                fi
+              done < <(grep '^include:' "$file" | awk -F':' '{print $2}')
+            fi
+
+            ((idx++))
           done
 
-          rm -f $TEMP_KEEP_LIST
+          declare -A seen
+          UNIQUE_KEPT=()
+          for item in "${KEPT[@]}"; do
+            if [ -z "${seen[$item]}" ]; then
+              UNIQUE_KEPT+=("$item")
+              seen[$item]=1
+            fi
+          done
+
+          find "$DATA_DIR" -type f | while read -r f; do
+            base="$(basename "$f")"
+            if [ -z "${seen[$base]}" ]; then
+              rm -f "$f"
+            fi
+          done
+
 
 
       - name: Set variables

@@ -1,6 +1,8 @@
 name: Build geosite.dat
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 21 * * *"
   push:
     branches:
       - master
@@ -65,7 +67,7 @@ jobs:
       - name: Build geosite.dat file
         run: |
           cd custom || exit 1
-          go run ./ -outputpath=../ -exportlists=category-ads-all,private,ru-blocked,category-ru -datapath=../community/data
+          go run ./ -outputpath=../ -exportlists= -datapath=../community/data
           cd ../ && rm -rf custom
 
       - name: Generate geosite.dat sha256 hash

@@ -39,59 +39,25 @@ jobs:
 
       - name: Filter data directory based on sections
         run: |
-          # Параметры
           INTEREST_FILE=sections
           DATA_DIR=./community/data
           TEMP_KEEP_LIST=keep_files.txt
-          TEMP_NEW_LIST=new_files.txt
 
-          # Проверяем, что файл секций существует
-          if [ ! -f "$INTEREST_FILE" ]; then
-            echo "Файл $INTEREST_FILE не найден!"
-            exit 1
-          fi
+          [ ! -f $INTEREST_FILE ] && { echo "File $INTEREST_FILE not found."; exit 1; }
 
-          # Очищаем список keep и пишем туда содержимое sections (без комментариев и пустых строк)
-          grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$' > "$TEMP_KEEP_LIST"
+          grep -v '^#' $INTEREST_FILE | grep -v '^\s*$' > $TEMP_KEEP_LIST
+          while read -r section; do
+            file=$DATA_DIR/$section
+            [ -f "$file" ] && grep '^include:' "$file" | awk -F':' '{print $2}' >> $TEMP_KEEP_LIST
+          done < $TEMP_KEEP_LIST
 
-          # Рекурсивно добавляем файлы из include
-          something_changed=true
-          while $something_changed; do
-            something_changed=false
-
-            # Копируем текущий список во временный, чтобы по нему проходиться
-            cp "$TEMP_KEEP_LIST" "$TEMP_NEW_LIST"
-
-            while read -r section; do
-              file_path="$DATA_DIR/$section"
-              if [ -f "$file_path" ]; then
-                # Ищем все строчки, начинающиеся на include:
-                includes=$(grep '^include:' "$file_path" | awk -F':' '{print $2}' | sed 's/^[ \t]*//; s/[ \t]*$//')
-
-                # Для каждого найденного include проверяем, добавляли ли мы его раньше
-                for inc in $includes; do
-                  if ! grep -qx "$inc" "$TEMP_KEEP_LIST"; then
-                    echo "$inc" >> "$TEMP_KEEP_LIST"
-                    something_changed=true
-                  fi
-                done
-              fi
-            done < "$TEMP_NEW_LIST"
+          sort -u $TEMP_KEEP_LIST -o $TEMP_KEEP_LIST
+          find $DATA_DIR -type f | while read -r file; do
+            base=$(basename "$file")
+            ! grep -qx "$base" $TEMP_KEEP_LIST && rm -f "$file"
           done
 
-          # Сортируем итоговый список и убираем дубликаты
-          sort -u "$TEMP_KEEP_LIST" -o "$TEMP_KEEP_LIST"
-
-          # Удаляем из data всё, что не в keep_files.txt
-          find "$DATA_DIR" -type f | while read -r file; do
-            base_name=$(basename "$file")
-            if ! grep -qx "$base_name" "$TEMP_KEEP_LIST"; then
-              rm -f "$file"
-            fi
-          done
-
-          # Чистим временные файлы
-          rm -f "$TEMP_KEEP_LIST" "$TEMP_NEW_LIST"
+          rm -f $TEMP_KEEP_LIST
 
 
       - name: Set variables

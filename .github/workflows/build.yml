@@ -59,10 +59,10 @@ jobs:
           }
 
           idx=0
-          cat $INTEREST_FILE
           while [ $idx -lt ${#PENDING[@]} ]; do
             current="${PENDING[$idx]}"
             file="$DATA_DIR/$current"
+            cat $INTEREST_FILE
 
             if [ -f "$file" ]; then
               while read -r included; do
@@ -75,7 +75,6 @@ jobs:
 
             ((idx++))
           done
-          cat $INTEREST_FILE
 
           declare -A seen
           UNIQUE_KEPT=()

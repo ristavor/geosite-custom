@@ -62,7 +62,7 @@ jobs:
           while [ $idx -lt ${#PENDING[@]} ]; do
             current="${PENDING[$idx]}"
             file="$DATA_DIR/$current"
-            cat $INTEREST_FILE
+
 
             if [ -f "$file" ]; then
               while read -r included; do
@@ -70,6 +70,7 @@ jobs:
                   KEPT+=("$included")
                   PENDING+=("$included")
                 fi
+                cat $INTEREST_FILE
               done < <(grep '^include:' "$file" | awk -F':' '{print $2}' || true)
             fi
 
@@ -84,7 +85,6 @@ jobs:
               seen[$item]=1
             fi
           done
-          cat $INTEREST_FILE
 
           find "$DATA_DIR" -type f | while read -r f; do
             base="$(basename "$f")"

@@ -12,15 +12,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout codebase
+      - name: Checkout Loyalsoldier/domain-list-custom
         uses: actions/checkout@v4
         with:
-          path: code
+          repository: Loyalsoldier/domain-list-custom
+          path: custom
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: code/go.mod
+          go-version-file: ./custom/go.mod
+          cache-dependency-path: ./custom/go.sum
+
+      - name: Checkout v2fly/domain-list-community
+        uses: actions/checkout@v4
+        with:
+          repository: v2fly/domain-list-community
+          path: community
 
       - name: Set variables
         run: |
@@ -30,9 +38,9 @@ jobs:
 
       - name: Build geosite.dat file
         run: |
-          cd code || exit 1
-          go run ./ --outputdir=../ --exportlists=category-ads-all,tld-cn,cn,tld-\!cn,geolocation-\!cn,apple,icloud
-          cd ../ && rm -rf code
+          cd custom || exit 1
+          go run ./ --outputdir=../ --datapath=../community/data
+          cd ../ && rm -rf custom
 
       - name: Generate geosite.dat sha256 hash
         run: |

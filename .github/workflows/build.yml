@@ -39,7 +39,7 @@ jobs:
       - name: Build geosite.dat file
         run: |
           cd custom || exit 1
-          go run ./ -outputdir=../ --exportlists= --datapath=../community/data
+          go run ./ -outputdir=../ -exportlists= -datapath=../community/data
           cd ../ && rm -rf custom
 
       - name: Generate geosite.dat sha256 hash

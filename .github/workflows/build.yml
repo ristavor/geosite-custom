@@ -45,6 +45,7 @@ jobs:
           [ ! -f "$INTEREST_FILE" ] && { echo "File $INTEREST_FILE not found."; exit 1; }
 
           readarray -t PENDING < <(grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$' || true)
+          cat INTEREST_FILE
 
 
           KEPT=("${PENDING[@]}")
@@ -57,6 +58,7 @@ jobs:
             done
             return 1
           }
+          cat INTEREST_FILE
 
           idx=0
           while [ $idx -lt ${#PENDING[@]} ]; do
@@ -74,6 +76,7 @@ jobs:
 
             ((idx++))
           done
+          cat INTEREST_FILE
 
           declare -A seen
           UNIQUE_KEPT=()
@@ -83,6 +86,7 @@ jobs:
               seen[$item]=1
             fi
           done
+          cat INTEREST_FILE
 
           find "$DATA_DIR" -type f | while read -r f; do
             base="$(basename "$f")"

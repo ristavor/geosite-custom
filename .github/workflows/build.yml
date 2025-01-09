@@ -3,11 +3,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "00 22 * * *"
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - "**/README.md"
 jobs:
   build:
     name: Build
@@ -34,8 +29,8 @@ jobs:
 
       - name: Set variables
         run: |
-          echo "RELEASE_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
-          echo "TAG_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+          echo "RELEASE_NAME=Geosite Release" >> $GITHUB_ENV
+          echo "TAG_NAME=geosite-release" >> $GITHUB_ENV
 
           echo "ANTIFILTER_DOWNLOAD_COMMUNITY=https://community.antifilter.download/list/domains.lst" >> $GITHUB_ENV
           echo "REFILTER_ALL=https://raw.githubusercontent.com/1andrevich/Re-filter-lists/refs/heads/main/domains_all.lst" >> $GITHUB_ENV
@@ -87,6 +82,6 @@ jobs:
 
       - name: Release and upload assets
         run: |
-          gh release create ${{ env.TAG_NAME }} --generate-notes --latest --title ${{ env.RELEASE_NAME }} ./geosite.dat ./geosite.dat.*
+          gh release upload ${{ env.TAG_NAME }} ./output/geosite.dat ./output/geosite.dat.sha256sum --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

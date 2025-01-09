@@ -42,11 +42,10 @@ jobs:
           INTEREST_FILE=sections
           DATA_DIR=./community/data
 
-          [ ! -f "$INTEREST_FILE" ] && { echo "File $INTEREST_FILE not found."; exit 2; }
+          [ ! -f "$INTEREST_FILE" ] && { echo "File $INTEREST_FILE not found."; exit 1; }
 
-          readarray -t PENDING < <(
-            grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$'
-          )
+          readarray -t PENDING < <(grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$' || true)
+
 
           KEPT=("${PENDING[@]}")
 

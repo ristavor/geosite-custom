@@ -39,59 +39,59 @@ jobs:
 
       - name: Filter data directory based on sections
         run: |
+          # Параметры
           INTEREST_FILE=sections
           DATA_DIR=./community/data
+          TEMP_KEEP_LIST=keep_files.txt
+          TEMP_NEW_LIST=new_files.txt
 
-          [ ! -f "$INTEREST_FILE" ] && { echo "File $INTEREST_FILE not found."; exit 1; }
+          # Проверяем, что файл секций существует
+          if [ ! -f "$INTEREST_FILE" ]; then
+            echo "Файл $INTEREST_FILE не найден!"
+            exit 1
+          fi
 
-          readarray -t PENDING < <(grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$' || true)
+          # Очищаем список keep и пишем туда содержимое sections (без комментариев и пустых строк)
+          grep -v '^#' "$INTEREST_FILE" | grep -v '^[[:space:]]*$' > "$TEMP_KEEP_LIST"
 
+          # Рекурсивно добавляем файлы из include
+          something_changed=true
+          while $something_changed; do
+            something_changed=false
 
-          KEPT=("${PENDING[@]}")
+            # Копируем текущий список во временный, чтобы по нему проходиться
+            cp "$TEMP_KEEP_LIST" "$TEMP_NEW_LIST"
 
-          contains_in_kept() {
-            local element="$1"
-            local item
-            for item in "${KEPT[@]}"; do
-              [[ "$item" == "$element" ]] && return 0
-            done
-            return 1
-          }
+            while read -r section; do
+              file_path="$DATA_DIR/$section"
+              if [ -f "$file_path" ]; then
+                # Ищем все строчки, начинающиеся на include:
+                includes=$(grep '^include:' "$file_path" | awk -F':' '{print $2}' | sed 's/^[ \t]*//; s/[ \t]*$//')
 
-          idx=0
-          while [ $idx -lt ${#PENDING[@]} ]; do
-            current="${PENDING[$idx]}"
-            file="$DATA_DIR/$current"
-
-
-            if [ -f "$file" ]; then
-              while read -r included; do
-                if ! contains_in_kept "$included"; then
-                  KEPT+=("$included")
-                  PENDING+=("$included")
-                fi
-                cat $INTEREST_FILE
-              done < <(grep '^include:' "$file" | awk -F':' '{print $2}' || true)
-            fi
-
-            ((idx++))
+                # Для каждого найденного include проверяем, добавляли ли мы его раньше
+                for inc in $includes; do
+                  if ! grep -qx "$inc" "$TEMP_KEEP_LIST"; then
+                    echo "$inc" >> "$TEMP_KEEP_LIST"
+                    something_changed=true
+                  fi
+                done
+              fi
+            done < "$TEMP_NEW_LIST"
           done
 
-          declare -A seen
-          UNIQUE_KEPT=()
-          for item in "${KEPT[@]}"; do
-            if [ -z "${seen[$item]}" ]; then
-              UNIQUE_KEPT+=("$item")
-              seen[$item]=1
+          # Сортируем итоговый список и убираем дубликаты
+          sort -u "$TEMP_KEEP_LIST" -o "$TEMP_KEEP_LIST"
+
+          # Удаляем из data всё, что не в keep_files.txt
+          find "$DATA_DIR" -type f | while read -r file; do
+            base_name=$(basename "$file")
+            if ! grep -qx "$base_name" "$TEMP_KEEP_LIST"; then
+              rm -f "$file"
             fi
           done
 
-          find "$DATA_DIR" -type f | while read -r f; do
-            base="$(basename "$f")"
-            if [ -z "${seen[$base]}" ]; then
-              rm -f "$f"
-            fi
-          done
+          # Чистим временные файлы
+          rm -f "$TEMP_KEEP_LIST" "$TEMP_NEW_LIST"
 
 
       - name: Set variables

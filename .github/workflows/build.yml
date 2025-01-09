@@ -33,45 +33,26 @@ jobs:
 
       - name: Filter data directory based on sections
         run: |
-          # Название файла с интересующими вас секциями
           INTEREST_FILE=sections
           DATA_DIR=./community/data
           TEMP_KEEP_LIST=keep_files.txt
 
-          # Список секций, которые необходимо оставить
-          if [ ! -f $INTEREST_FILE ]; then
-            echo "Файл $INTEREST_FILE не найден."
-            exit 1
-          fi
+          [ ! -f $INTEREST_FILE ] && { echo "File $INTEREST_FILE not found."; exit 1; }
 
-          # Собираем список файлов, которые нужно оставить
           grep -v '^#' $INTEREST_FILE | grep -v '^\s*$' > $TEMP_KEEP_LIST
           while read -r section; do
             file=$DATA_DIR/$section
-            if [ -f "$file" ]; then
-              echo "Обрабатываем файл: $file"
-              # Проверяем секции include рекурсивно
-              grep '^include:' "$file" | awk -F':' '{print $2}' | while read -r include_file; do
-                echo "Рекурсивно добавляем файл: $include_file"
-                echo "$include_file" >> $TEMP_KEEP_LIST
-              done
-            fi
+            [ -f "$file" ] && grep '^include:' "$file" | awk -F':' '{print $2}' >> $TEMP_KEEP_LIST
           done < $TEMP_KEEP_LIST
 
-          # Удаляем дубликаты из списка файлов для сохранения
           sort -u $TEMP_KEEP_LIST -o $TEMP_KEEP_LIST
-
-          # Удаляем все файлы, которых нет в списке для сохранения
           find $DATA_DIR -type f | while read -r file; do
             base=$(basename "$file")
-            if ! grep -qx "$base" $TEMP_KEEP_LIST; then
-              echo "Удаляем файл: $file"
-              rm -f "$file"
-            fi
+            ! grep -qx "$base" $TEMP_KEEP_LIST && rm -f "$file"
           done
 
-          # Чистим временные файлы
           rm -f $TEMP_KEEP_LIST
+
 
       - name: Set variables
         run: |

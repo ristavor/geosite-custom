@@ -123,7 +123,10 @@ jobs:
           git checkout -b release
           git add geosite.dat.sha256sum geosite.dat
           git commit -m "${{ env.RELEASE_NAME }}"
+
+          git remote remove origin || true
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+
           git push -f -u origin release
 
       - name: Release and upload assets
